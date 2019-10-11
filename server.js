@@ -1,10 +1,32 @@
+/*********************************************************************************
+* WEB322 – Assignment 03
+* I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part
+* of this assignment has been copied manually or electronically from any other source
+* (including 3rd party web sites) or distributed to other students. *
+* Name: Ashish Sheoran      Student ID: 162543177     Date: October 9, 2019 *
+* Online (Heroku) Link: 
+* ********************************************************************************/
+
+
 var HTTP_PORT = process.env.PORT || 8080;
 var express = require("express");
+var multer = require("multer");
+const bodyParser = require("body-parser");
 var app = express();
 var path = require('path');
+var fs = require('fs');
 var dataService = require('./data-service.js');
 
+const storage = multer.diskStorage({
+    destination: "./public/images/uploaded/",
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + path.extname(file.originalname));
+    }
+});
+var upload = multer({ storage: storage });
+
 app.use(express.static('public'));
+app.use(bodyParser.urlencoded({ extended: true }));
 // setup a 'route' to listen on the default url path
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname+"/views/home.html"));
@@ -14,10 +36,37 @@ app.get("/about", (req, res) => {
     res.sendFile(path.join(__dirname+"/views/about.html"));
 });
 
-app.get('/employees', (req, res) => {
-    dataService.getAllEmployees()
+app.get("/employees/add", (req, res) => {
+    res.sendFile(path.join(__dirname+"/views/addEmployee.html"));
+});
+
+app.get("/images/add", (req, res) => {
+    res.sendFile(path.join(__dirname+"/views/addImage.html"));
+});
+
+app.get('/employee/:employeeNum', (req, res) => {
+    dataService.getEmployeesByNum(req.params.employeeNum)
         .then((data) => res.json(data))
-        .catch((err) => res.json({"message": err}))
+});
+
+app.get('/employees', (req, res) => {
+    if(req.query.status) {
+        dataService.getEmployeesByStatus(req.query.status)
+            .then((data) => res.json(data))
+            .catch((err) => res.json({"message": err}))
+    }else if(req.query.manager){
+        dataService.getEmployeesByManager(req.query.manager)
+            .then((data) => res.json(data))
+            .catch((err) => res.json({"message": err}))
+    }else if(req.query.department){
+        dataService.getEmployeesByDepartment(req.query.department)
+            .then((data) => res.json(data))
+            .catch((err) => res.json({"message": err}))
+    }else{
+        dataService.getAllEmployees()
+            .then((data) => res.json(data))
+            .catch((err) => res.json({"message": err}))
+    }
 });
 
 app.get('/managers', (req, res) => {
@@ -26,16 +75,32 @@ app.get('/managers', (req, res) => {
         .catch((err) => res.json({"message": err}))
 });
 
-app.get('*', (req, res) => {
-    //res.send("Page Not Found");
-    res.status(404);
-    res.redirect("https://cdn-images-1.medium.com/max/1600/1*2AwCgo19S83FGE9An68w9A.gif");
-})
-
 app.get('/departments', (req, res) => {
     dataService.getDepartments()
         .then((data) => res.json(data))
         .catch((err) => res.json({"message": err}))
+})
+
+app.get("/images", (req, res) => {
+    fs.readdir("./public/images/uploaded", function(err, imageFile){
+        res.json(imageFile);
+    })
+})
+
+app.post("/images/add", upload.single("imageFile"), (req, res) => {
+    res.redirect("/images");
+});
+
+app.post('/employees/add', function(req, res) {
+    dataService.addEmployee(req.body)
+        .then(res.redirect('/employees'))
+        .catch((err) => res.json({"message": err}))   
+}) 
+
+app.get('*', (req, res) => {
+    //res.send("Page Not Found");
+    res.status(404);
+    res.redirect("https://cdn-images-1.medium.com/max/1600/1*2AwCgo19S83FGE9An68w9A.gif");
 })
 
 // setup http server to listen on HTTP_PORT
