@@ -82,8 +82,22 @@ exports.getEmployeesByManager = function(manager){
 exports.getEmployeesByNum = function(num){
     return new Promise((resolve, reject) => {
         let filteredEmployees = employees.filter(employees => employees.employeeNum == num);
-        resolve(filteredEmployees);
+        resolve(filteredEmployees[0]);
         if(filteredEmployees.length == 0)
         reject("no results returned");
     });
 }
+
+exports.updateEmployee = function(employeeData){
+    return new Promise((resolve, reject) => {
+        employeeData.isManager = (employeeData.isManager) ? true : false;
+        return new Promise((resolve, reject) => {
+            employees.forEach(employee => {
+                if (employee.employeeNum == employeeData.employeeNum) {
+                    employees.splice(employeeData.employeeNum - 1, 1, employeeData);
+                }
+            });
+            resolve();
+        });
+    });
+};
