@@ -200,7 +200,6 @@ exports.updateDepartment = function(departmentData){
     });
 };
 
-
 exports.deleteEmployeeByNum = function(empNum){
     return new Promise((resolve, reject) => {
         Employee.destroy({where: {employeeNum:empNum}}) 
