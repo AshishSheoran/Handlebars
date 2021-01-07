@@ -1,13 +1,3 @@
-/*********************************************************************************
-* WEB322 – Assignment 05
-* I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part
-* of this assignment has been copied manually or electronically from any other source
-* (including 3rd party web sites) or distributed to other students. *
-* Name: Ashish Sheoran      Student ID: 162543177     Date: November 20, 2019 *
-* Online (Heroku) Link: https://guarded-dusk-63518.herokuapp.com
-* ********************************************************************************/
-
-
 var express = require("express");
 var multer = require("multer");
 var app = express();
