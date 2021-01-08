@@ -1,20 +1,47 @@
 var express = require("express");
 var multer = require("multer");
+var bodyParser = require('body-parser');
+var exphbs = require('express-handlebars');
+var clientSessions = require('client-sessions');
 var app = express();
 var data_server = require("./data-service.js")
 var dataServiceAuth = require("./data-service-auth");
 var path = require("path")
-var HTTP_PORT = process.env.PORT || 8080;
 var fs = require("fs");
-var bodyParser = require('body-parser');
-var exphbs = require('express-handlebars');
+const { ppid } = require("process");
+
+var HTTP_PORT = process.env.PORT || 8080;
+
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// using multer library
+// Setup client sessions
+app.use(clientSessions, ({
+  cookieName: "session",      // This is the object name that will be added to 'req'
+  secret: "web_application",  
+  duration: 2 * 60 *1000,     // Duration of the session in milliseconds (2 seconds).
+  activeDuration: 1000 * 60   // the session will be extended for this much of time after every request (1 minute).
+}));
 
+// Custom middleware function to ensure all templates will have access to a "session" object.
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
+// Function to check if the user is logged in
+function ensureLogin(req, res, next) {
+  if(!req.session.user) {
+    res.redirect("/login");
+  } else {
+    next();
+  }
+};
+
+
+// using multer library
 const storage = multer.diskStorage({
   destination: "./public/images/uploaded",
   filename: function (req, file, cb) {
@@ -22,8 +49,8 @@ const storage = multer.diskStorage({
   }
 });
 
-
 var upload = multer({ storage: storage });
+
 
 function onHttpStart() {
   console.log("Express http server listening on: " + HTTP_PORT);
@@ -62,43 +89,35 @@ app.engine('.hbs', exphbs({
 
 
 //home.hbs
-
 app.get("/", (req, res) => {
   res.render("home");
 });
 
 //about.hbs
-
 app.get("/about", (req, res) => {
   res.render("about");
 });
 
-//addEmployee.hbs
-
 
 //addImages.hbs
-
-app.get("/images/add", function (req, res) {
+app.get("/images/add", ensureLogin, function (req, res) {
   res.render("addImage");
 });
 
-/////// reading images
-
-
-app.post("/images/add", upload.single("imageFile"), (req, res) => {
+// reading images
+app.post("/images/add", upload.single("imageFile"), ensureLogin, (req, res) => {
   res.redirect("/images");
 });
 
 
-app.get("/images", (req, res) => {
+app.get("/images", ensureLogin, (req, res) => {
   fs.readdir("./public/images/uploaded", function (err, imageFile) {
     res.render("images", { imageFile });
   })
 });
 
 //departments.json
-
-app.get("/departments", (req, res) => {
+app.get("/departments", ensureLogin, (req, res) => {
   data_server.getDepartments()
     .then((data) => {
       if (data.length > 0) {
@@ -113,8 +132,7 @@ app.get("/departments", (req, res) => {
 
 
 //employees.json
-
-app.get("/employees", (req, res) => {
+app.get("/employees", ensureLogin, (req, res) => {
   if (req.query.status) {
     data_server.getEmployeesByStatus(req.query.status)
       .then((data) => {
@@ -169,9 +187,8 @@ app.get("/employees", (req, res) => {
 });
 
 
-////////post route for employees
-
-app.post('/employees/add', function (req, res) {
+// post route for employees
+app.post('/employees/add', ensureLogin, function (req, res) {
   data_server.addEmployee(req.body)
     .then(res.redirect('/employees'))
     .catch((err) => {
@@ -179,7 +196,7 @@ app.post('/employees/add', function (req, res) {
     });
 })
 
-app.get("/employees/add", (req, res) => {
+app.get("/employees/add", ensureLogin, (req, res) => {
   //res.sendFile(path.join(__dirname+"/views/addEmployee.html"));
   data_server.getDepartments()
     .then((data) => {
@@ -192,11 +209,8 @@ app.get("/employees/add", (req, res) => {
     })
 });
 
-///////// update employee data using post
-
-
-
-app.post('/employee/update', (req, res) => {
+// update employee data using post
+app.post('/employee/update', ensureLogin, (req, res) => {
   console.log('update' + req.body);
   data_server.updateEmployee(req.body)
     .then(res.redirect('/employees'))
@@ -205,62 +219,8 @@ app.post('/employee/update', (req, res) => {
     });
 });
 
-////////        get department
-
-app.get("/departments/add", function (req, res) {
-  res.render("addDepartment");
-});
-
-////////      post department
-
-app.post("/departments/add", (req, res) => {
-  data_server.addDepartment(req.body)
-    .then(res.redirect("/departments"))
-    .catch((err) => {
-      res.status(500).send("Unable to add department");
-    });
-})
-
-////////     update department
-
-app.post('/department/update', (req, res) => {
-  console.log('update' + req.body);
-  data_server.updateDepartment(req.body)
-    .then(res.redirect('/departments'))
-    .catch((err) => {
-      res.status(500).send("Unable to Update department");
-    });
-});
-
-//////// get department by department id
-
-app.get("/department/:departmentId", (req, res) => {
-  data_server.getDepartmentById(req.params.departmentId)
-    .then((data) => {
-      res.render("department", { department: data });
-    })
-    .catch(() => {
-      res.status(404).send("Department Not Found");
-    })
-})
-
-//////////  delete departments
-
-app.get("/departments/delete/:departmentId", (req, res) => {
-  data_server.deleteDepartmentById(req.params.departmentId)
-    .then((data) => {
-      res.redirect("/departments");
-    })
-    .catch(() => {
-      res.status(500).send("Unable to Remove Department / Department not found)");
-    })
-})
-
-
-
-//////// new function to get employee by num
-
-app.get("/employee/:empNum", (req, res) => {
+// new function to get employee by num
+app.get("/employee/:empNum", ensureLogin, (req, res) => {
   // initialize an empty object to store the values
   let viewData = {};
   data_server.getEmployeeByNum(req.params.empNum).then((data) => {
@@ -293,14 +253,60 @@ app.get("/employee/:empNum", (req, res) => {
     });
 });
 
-
-/////////////////// deleting employees
-
-app.get('/employees/delete/:empNum', (req, res) => {
+// deleting employees
+app.get('/employees/delete/:empNum', ensureLogin, (req, res) => {
   data_server.deleteEmployeeByNum(req.params.empNum)
     .then((data) => res.redirect("/employees"))
     .catch(() => res.status(500).send("Unable to Remove Employee / Employee not found"))
 })
+
+// get department
+app.get("/departments/add", ensureLogin, function (req, res) {
+  res.render("addDepartment");
+});
+
+// post department
+app.post("/departments/add", ensureLogin, (req, res) => {
+  data_server.addDepartment(req.body)
+    .then(res.redirect("/departments"))
+    .catch((err) => {
+      res.status(500).send("Unable to add department");
+    });
+})
+
+// update department
+app.post('/department/update', ensureLogin, (req, res) => {
+  console.log('update' + req.body);
+  data_server.updateDepartment(req.body)
+    .then(res.redirect('/departments'))
+    .catch((err) => {
+      res.status(500).send("Unable to Update department");
+    });
+});
+
+// get department by department id
+app.get("/department/:departmentId", ensureLogin, (req, res) => {
+  data_server.getDepartmentById(req.params.departmentId)
+    .then((data) => {
+      res.render("department", { department: data });
+    })
+    .catch(() => {
+      res.status(404).send("Department Not Found");
+    })
+})
+
+// delete departments
+app.get("/departments/delete/:departmentId", ensureLogin, (req, res) => {
+  data_server.deleteDepartmentById(req.params.departmentId)
+    .then((data) => {
+      res.redirect("/departments");
+    })
+    .catch(() => {
+      res.status(500).send("Unable to Remove Department / Department not found)");
+    })
+})
+
+
 
 
 ////////////////////////////////////////////////
@@ -314,4 +320,3 @@ data_server.initialize()
   .then(() => { app.listen(HTTP_PORT, onHttpStart); })
   .catch(err => { console.log(err); })
 
-app.use(express.static('public'));
