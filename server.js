@@ -2,6 +2,7 @@ var express = require("express");
 var multer = require("multer");
 var app = express();
 var data_server = require("./data-service.js")
+var dataServiceAuth = require("./data-service-auth");
 var path = require("path")
 var HTTP_PORT = process.env.PORT || 8080;
 var fs = require("fs");
@@ -19,7 +20,6 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname));
   }
-
 });
 
 
@@ -64,16 +64,13 @@ app.engine('.hbs', exphbs({
 //home.hbs
 
 app.get("/", (req, res) => {
-
   res.render("home");
 });
 
 //about.hbs
 
 app.get("/about", (req, res) => {
-
   res.render("about");
-
 });
 
 //addEmployee.hbs
@@ -82,9 +79,7 @@ app.get("/about", (req, res) => {
 //addImages.hbs
 
 app.get("/images/add", function (req, res) {
-
   res.render("addImage");
-
 });
 
 /////// reading images
@@ -120,27 +115,22 @@ app.get("/departments", (req, res) => {
 //employees.json
 
 app.get("/employees", (req, res) => {
-
   if (req.query.status) {
     data_server.getEmployeesByStatus(req.query.status)
       .then((data) => {
         if (data.length > 0) {
-
           res.render("employees", { employees: data })
         }
         else {
           res.render("employees", { "message": "no data" })
         }
       })
-
       .catch((err) => { res.render("employees", { "message": "no data" }) })
-
   }
   else if (req.query.department) {
     data_server.getEmployeesByDepartment(req.query.department)
       .then((data) => {
         if (data.length > 0) {
-
           res.render("employees", { employees: data })
         }
         else {
@@ -153,7 +143,6 @@ app.get("/employees", (req, res) => {
     data_server.getEmployeesByManager(req.query.manager)
       .then((data) => {
         if (data.length > 0) {
-
           res.render("employees", { employees: data })
         }
         else {
@@ -167,14 +156,12 @@ app.get("/employees", (req, res) => {
       .then((data) => {
         console.log(data);
         if (data.length > 0) {
-
           res.render("employees", { employees: data })
         } else {
           res.render("employees", { "message": "no data" })
         }
       })
       .catch((err) => {
-
         res.render("employees", { "message": "no data" })
       });
   }
@@ -211,7 +198,6 @@ app.get("/employees/add", (req, res) => {
 
 app.post('/employee/update', (req, res) => {
   console.log('update' + req.body);
-
   data_server.updateEmployee(req.body)
     .then(res.redirect('/employees'))
     .catch((err) => {
@@ -222,9 +208,7 @@ app.post('/employee/update', (req, res) => {
 ////////        get department
 
 app.get("/departments/add", function (req, res) {
-
   res.render("addDepartment");
-
 });
 
 ////////      post department
@@ -241,7 +225,6 @@ app.post("/departments/add", (req, res) => {
 
 app.post('/department/update', (req, res) => {
   console.log('update' + req.body);
-
   data_server.updateDepartment(req.body)
     .then(res.redirect('/departments'))
     .catch((err) => {
@@ -259,7 +242,6 @@ app.get("/department/:departmentId", (req, res) => {
     .catch(() => {
       res.status(404).send("Department Not Found");
     })
-
 })
 
 //////////  delete departments
@@ -272,7 +254,6 @@ app.get("/departments/delete/:departmentId", (req, res) => {
     .catch(() => {
       res.status(500).send("Unable to Remove Department / Department not found)");
     })
-
 })
 
 
@@ -326,7 +307,11 @@ app.get('/employees/delete/:empNum', (req, res) => {
 app.use(function (req, res) {
   res.status(404).send("Page Not Found");
 })
+
+
 data_server.initialize()
+  .then(dataServiceAuth.initialize)
   .then(() => { app.listen(HTTP_PORT, onHttpStart); })
   .catch(err => { console.log(err); })
+
 app.use(express.static('public'));
