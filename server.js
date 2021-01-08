@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Setup client sessions
-app.use(clientSessions, ({
+app.use(clientSessions({
   cookieName: "session",      // This is the object name that will be added to 'req'
   secret: "web_application",  
   duration: 2 * 60 *1000,     // Duration of the session in milliseconds (2 seconds).
