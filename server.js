@@ -138,7 +138,7 @@ app.get("/logout", (req, res) => {
 
 // get/userHistory
 app.get("/userHistory", ensureLogin, (req, res) => {
-  res.render("/userHistory");
+  res.render('userHistory');
 })
 
 /* Routes to access the data on the web application */
