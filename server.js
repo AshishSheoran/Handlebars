@@ -183,7 +183,7 @@ app.get("/employees", ensureLogin, (req, res) => {
           res.render("employees", { "message": "no data" })
         }
       })
-      .catch((err) => { res.render("employees", { "message": "no data" }) })
+      .catch((err) => { res.render('employees', { "message": "no data" }) })
   }
   else if (req.query.department) {
     data_server.getEmployeesByDepartment(req.query.department)
@@ -195,32 +195,32 @@ app.get("/employees", ensureLogin, (req, res) => {
           res.render("employees", { "message": "no data" })
         }
       })
-      .catch((err) => { res.render("employees", { "message": "no data" }) })
+      .catch((err) => { res.render('employees', { "message": "no data" }) })
   }
   else if (req.query.manager) {
     data_server.getEmployeesByManager(req.query.manager)
       .then((data) => {
         if (data.length > 0) {
-          res.render("employees", { employees: data })
+          res.render('employees', { employees: data })
         }
         else {
-          res.render("employees", { "message": "no data" })
+          res.render('employees', { "message": "no data" })
         }
       })
-      .catch((err) => { res.render("employees", { "message": "no data" }) })
+      .catch((err) => { res.render('employees', { "message": "no data" }) })
   }
   else {
     data_server.getAllEmployees()
       .then((data) => {
         console.log(data);
         if (data.length > 0) {
-          res.render("employees", { employees: data })
+          res.render('employees', { employees: data })
         } else {
-          res.render("employees", { "message": "no data" })
+          res.render('employees', { "message": "no data" })
         }
       })
       .catch((err) => {
-        res.render("employees", { "message": "no data" })
+        res.render('employees', { "message": "no data" })
       });
   }
 
