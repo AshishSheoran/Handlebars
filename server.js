@@ -92,7 +92,7 @@ app.engine('.hbs', exphbs({
 
 // Simply renders "login" view
 app.get("/login", (req, res) => {
-  res.render("/login");
+  res.render('login');
 });
 
 // The login route that adds the user to the session
@@ -116,7 +116,7 @@ app.post("/login", (req, res) => {
 
 // Simply renders the "register" view
 app.get("/register", (req, res) => {
-  res.render("/register");
+  res.render('register');
 });
 
 // Route to allow user to register
