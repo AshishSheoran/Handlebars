@@ -56,8 +56,7 @@ function onHttpStart() {
   console.log("Express http server listening on: " + HTTP_PORT);
 }
 
-/////////////////////////    Navigation bar fixing     ///////////
-
+//    Navigation bar fixing   
 app.set('view engine', '.hbs');
 app.use(function (req, res, next) {
   let route = req.baseUrl + req.path;
@@ -87,6 +86,62 @@ app.engine('.hbs', exphbs({
   }
 }));
 
+/* Routes that enable user to register for an account 
+    and login/ logout of the system 
+*/
+
+// Simply renders "login" view
+app.get("/login", (req, res) => {
+  res.render("/login");
+});
+
+// The login route that adds the user to the session
+app.post("/login", (req, res) => {
+  req.body.userAgent = req.get('User-Agent');
+
+  dataServiceAuth.checkUser(req.body)
+    .then((user) => {
+      req.session.user = {
+        userName: user.userName,
+        email: user.email,
+        loginHistory: user.loginHistory
+      }
+
+      res.redirect("/employees");
+    })
+    .catch((err) => {
+      res.render('login', { errorMessage: err, userName: req.body.userName })
+    })
+});
+
+// Simply renders the "register" view
+app.get("/register", (req, res) => {
+  res.render("/register");
+});
+
+// Route to allow user to register
+app.post("/register", (req, res) => {
+    dataServiceAuth.registerUser(req.body)
+      .then(() => {
+        res.render('register', {successMessage: "User created!"})
+      })
+      .catch((err) => {
+        res.render('register', {errorMessage: err, userName: req.body.userName})
+      })
+});
+
+// Log a user out by destroying their session and redirecting them to /login
+app.get("/logout", (req, res) => {
+  req.session.reset();
+  res.redirect("/");
+});
+
+// get/userHistory
+app.get("/userHistory", ensureLogin, (req, res) => {
+  res.render("/userHistory");
+})
+
+/* Routes to access the data on the web application */
 
 //home.hbs
 app.get("/", (req, res) => {
@@ -115,21 +170,6 @@ app.get("/images", ensureLogin, (req, res) => {
     res.render("images", { imageFile });
   })
 });
-
-//departments.json
-app.get("/departments", ensureLogin, (req, res) => {
-  data_server.getDepartments()
-    .then((data) => {
-      if (data.length > 0) {
-        res.render("departments", { departments: data })
-      }
-      else {
-        res.render("departments", { "message": "no results" })
-      }
-    })
-    .catch((err) => { res.render("departments", { "message": "no results" }) })
-});
-
 
 //employees.json
 app.get("/employees", ensureLogin, (req, res) => {
@@ -185,7 +225,6 @@ app.get("/employees", ensureLogin, (req, res) => {
   }
 
 });
-
 
 // post route for employees
 app.post('/employees/add', ensureLogin, function (req, res) {
@@ -259,6 +298,20 @@ app.get('/employees/delete/:empNum', ensureLogin, (req, res) => {
     .then((data) => res.redirect("/employees"))
     .catch(() => res.status(500).send("Unable to Remove Employee / Employee not found"))
 })
+
+//departments.json
+app.get("/departments", ensureLogin, (req, res) => {
+  data_server.getDepartments()
+    .then((data) => {
+      if (data.length > 0) {
+        res.render("departments", { departments: data })
+      }
+      else {
+        res.render("departments", { "message": "no results" })
+      }
+    })
+    .catch((err) => { res.render("departments", { "message": "no results" }) })
+});
 
 // get department
 app.get("/departments/add", ensureLogin, function (req, res) {
